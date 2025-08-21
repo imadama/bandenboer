@@ -11,8 +11,18 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key')
 
 # Supabase configuration
-supabase_url = os.getenv('SUPABASE_URL')
+supabase_url = os.getenv('SUPABASE_URL', 'https://tfcgwmxiqgnlyjtpymzy.supabase.co')
 supabase_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+
+# Check if we have the required configuration
+if not supabase_key:
+    print("❌ SUPABASE_SERVICE_ROLE_KEY is niet ingesteld!")
+    print("🔧 Maak een .env bestand aan met je Supabase configuratie:")
+    print("   SUPABASE_URL=https://tfcgwmxiqgnlyjtpymzy.supabase.co")
+    print("   SUPABASE_SERVICE_ROLE_KEY=jouw-service-role-key-hier")
+    print("   Ga naar je Supabase dashboard > Settings > API om de service role key te vinden")
+    exit(1)
+
 supabase: Client = create_client(supabase_url, supabase_key)
 
 class BandenVoorraad:
@@ -72,6 +82,63 @@ class BandenVoorraad:
         if customer_name:
             query = query.eq('customer_name', customer_name)
         return query.order('reservation_date', desc=True).execute()
+    
+    def search_tires(self, search=None, condition=None, tire_type=None, stock_filter=None):
+        """Search and filter tires"""
+        query = supabase.table('tires').select('*')
+        
+        # Zoeken in merk, maat en type
+        if search:
+            query = query.or_(f'brand.ilike.%{search}%,size.ilike.%{search}%,tire_type.ilike.%{search}%')
+        
+        # Filter op conditie
+        if condition:
+            query = query.eq('condition', condition)
+        
+        # Filter op type
+        if tire_type:
+            query = query.eq('tire_type', tire_type)
+        
+        # Filter op voorraad
+        if stock_filter:
+            if stock_filter == 'in_stock':
+                query = query.gt('stock', 0)
+            elif stock_filter == 'low_stock':
+                query = query.lt('stock', 5).gt('stock', 0)
+            elif stock_filter == 'out_of_stock':
+                query = query.eq('stock', 0)
+        
+        return query.order('created_at', desc=True).execute()
+    
+    def get_inventory_stats(self):
+        """Get inventory statistics"""
+        all_tires = supabase.table('tires').select('*').execute()
+        
+        if not all_tires.data:
+            return {
+                'total_tires': 0,
+                'new_tires': 0,
+                'used_tires': 0,
+                'total_stock': 0,
+                'low_stock': 0,
+                'out_of_stock': 0
+            }
+        
+        tires = all_tires.data
+        total_stock = sum(tire['stock'] for tire in tires)
+        new_tires = len([t for t in tires if t['condition'] == 'new'])
+        used_tires = len([t for t in tires if t['condition'] == 'used'])
+        low_stock = len([t for t in tires if 0 < t['stock'] < 5])
+        out_of_stock = len([t for t in tires if t['stock'] == 0])
+        
+        return {
+            'total_tires': len(tires),
+            'new_tires': new_tires,
+            'used_tires': used_tires,
+            'total_stock': total_stock,
+            'low_stock': low_stock,
+            'out_of_stock': out_of_stock
+        }
 
 # Initialize the application
 banden_voorraad = BandenVoorraad()
@@ -178,5 +245,78 @@ def customer_reservations(customer_name):
                          reservations=reservations.data, 
                          customer_name=customer_name)
 
+@app.route('/inventory')
+def inventory():
+    """Inventory management page with search and filters"""
+    search = request.args.get('search', '')
+    condition = request.args.get('condition', '')
+    tire_type = request.args.get('tire_type', '')
+    stock_filter = request.args.get('stock_filter', '')
+    
+    # Get filtered tires
+    tires_result = banden_voorraad.search_tires(
+        search=search if search else None,
+        condition=condition if condition else None,
+        tire_type=tire_type if tire_type else None,
+        stock_filter=stock_filter if stock_filter else None
+    )
+    
+    # Get statistics
+    stats = banden_voorraad.get_inventory_stats()
+    
+    return render_template('inventory.html', 
+                         tires=tires_result.data,
+                         stats=stats)
+
+@app.route('/inventory/export')
+def export_inventory():
+    """Export inventory to CSV"""
+    import csv
+    from io import StringIO
+    from flask import Response
+    
+    search = request.args.get('search', '')
+    condition = request.args.get('condition', '')
+    tire_type = request.args.get('tire_type', '')
+    stock_filter = request.args.get('stock_filter', '')
+    
+    # Get filtered tires
+    tires_result = banden_voorraad.search_tires(
+        search=search if search else None,
+        condition=condition if condition else None,
+        tire_type=tire_type if tire_type else None,
+        stock_filter=stock_filter if stock_filter else None
+    )
+    
+    # Create CSV
+    si = StringIO()
+    cw = csv.writer(si)
+    
+    # Write header
+    cw.writerow(['ID', 'Merk', 'Maat', 'Type', 'Conditie', 'Voorraad', 'Prijs', 'Aangemaakt', 'Bijgewerkt'])
+    
+    # Write data
+    for tire in tires_result.data:
+        cw.writerow([
+            tire['id'],
+            tire['brand'],
+            tire['size'],
+            tire['tire_type'],
+            'Nieuw' if tire['condition'] == 'new' else 'Tweedehands',
+            tire['stock'],
+            f"€{tire['price']:.2f}" if tire['price'] else '',
+            tire['created_at'][:10] if tire['created_at'] else '',
+            tire['updated_at'][:10] if tire['updated_at'] else ''
+        ])
+    
+    output = si.getvalue()
+    si.close()
+    
+    # Create response
+    response = Response(output, mimetype='text/csv')
+    response.headers['Content-Disposition'] = 'attachment; filename=voorraad_export.csv'
+    
+    return response
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000) 
+    app.run(debug=True, host='0.0.0.0', port=5001) 
