@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Reserveringen - Banden Voorraad{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1><i class="fas fa-calendar-check"></i> Reserveringen Beheren</h1>
+    </div>
+</div>
+
+<!-- Nieuwe Reservering Formulier -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus"></i> Nieuwe Reservering
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" class="needs-validation" novalidate>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="tire_id" class="form-label">Banden *</label>
+                            <select class="form-select" id="tire_id" name="tire_id" required>
+                                <option value="">Selecteer banden...</option>
+                                {% for tire in available_tires %}
+                                <option value="{{ tire.id }}">
+                                    {{ tire.brand }} {{ tire.size }} ({{ tire.tire_type }}) - 
+                                    {{ tire.condition }} - Voorraad: {{ tire.stock }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">
+                                Selecteer banden.
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="customer_name" class="form-label">Klantnaam *</label>
+                            <input type="text" class="form-control" id="customer_name" name="customer_name" required>
+                            <div class="invalid-feedback">
+                                Voer een klantnaam in.
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="reservation_date" class="form-label">Reserveringsdatum *</label>
+                            <input type="date" class="form-control" id="reservation_date" name="reservation_date" required>
+                            <div class="invalid-feedback">
+                                Selecteer een datum.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <label for="notes" class="form-label">Opmerkingen</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="2" 
+                                      placeholder="Optionele opmerkingen..."></textarea>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Reservering Maken
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reserveringen Overzicht -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i> Alle Reserveringen
+                    <span class="badge bg-primary float-end">{{ reservations|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if reservations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Datum</th>
+                                    <th>Klant</th>
+                                    <th>Banden</th>
+                                    <th>Type</th>
+                                    <th>Conditie</th>
+                                    <th>Opmerkingen</th>
+                                    <th>Acties</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reservation in reservations %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ reservation.reservation_date }}</strong>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('customer_reservations', customer_name=reservation.customer_name) }}" 
+                                           class="text-decoration-none">
+                                            <i class="fas fa-user"></i> {{ reservation.customer_name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <strong>{{ reservation.tires.brand }}</strong><br>
+                                        <small class="text-muted">{{ reservation.tires.size }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ reservation.tires.tire_type }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if reservation.tires.condition == 'new' else 'warning' }}">
+                                            {{ 'Nieuw' if reservation.tires.condition == 'new' else 'Tweedehands' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if reservation.notes %}
+                                            <small class="text-muted">{{ reservation.notes }}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-success btn-action"
+                                                onclick="markAsCompleted({{ reservation.id }})">
+                                            <i class="fas fa-check"></i> Voltooid
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">Geen reserveringen gevonden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+// Set default date to today
+document.getElementById('reservation_date').value = new Date().toISOString().split('T')[0];
+
+function markAsCompleted(reservationId) {
+    if (confirm('Weet je zeker dat je deze reservering als voltooid wilt markeren?')) {
+        // Here you would typically make an AJAX call to mark the reservation as completed
+        alert('Functie voor het markeren als voltooid wordt nog geïmplementeerd.');
+    }
+}
+</script>
+{% endblock %} 

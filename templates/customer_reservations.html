@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Reserveringen van {{ customer_name }} - Banden Voorraad{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-user"></i> Reserveringen van {{ customer_name }}
+            </h1>
+            <a href="{{ url_for('reservations') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Terug naar Reserveringen
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i> Reserveringen Overzicht
+                    <span class="badge bg-primary float-end">{{ reservations|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if reservations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Datum</th>
+                                    <th>Banden</th>
+                                    <th>Type</th>
+                                    <th>Conditie</th>
+                                    <th>Opmerkingen</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reservation in reservations %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ reservation.reservation_date }}</strong>
+                                    </td>
+                                    <td>
+                                        <strong>{{ reservation.tires.brand }}</strong><br>
+                                        <small class="text-muted">{{ reservation.tires.size }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ reservation.tires.tire_type }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if reservation.tires.condition == 'new' else 'warning' }}">
+                                            {{ 'Nieuw' if reservation.tires.condition == 'new' else 'Tweedehands' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if reservation.notes %}
+                                            <small class="text-muted">{{ reservation.notes }}</small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning">Gereserveerd</span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Geen reserveringen gevonden voor {{ customer_name }}.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Klant Statistieken -->
+{% if reservations %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Klant Statistieken</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            <h3 class="text-primary">{{ reservations|length }}</h3>
+                            <p class="text-muted">Totaal Reserveringen</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            <h3 class="text-success">{{ reservations|selectattr('tires.condition', 'equalto', 'new')|list|length }}</h3>
+                            <p class="text-muted">Nieuwe Banden</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            <h3 class="text-warning">{{ reservations|selectattr('tires.condition', 'equalto', 'used')|list|length }}</h3>
+                            <p class="text-muted">Tweedehands Banden</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <h3 class="text-info">{{ reservations|map(attribute='reservation_date')|list|unique|list|length }}</h3>
+                        <p class="text-muted">Unieke Datums</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %} 

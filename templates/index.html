@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Overzicht - Banden Voorraad{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-tire"></i> Banden Voorraad Overzicht</h1>
+            <a href="{{ url_for('add_tire') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nieuwe Banden Toevoegen
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Nieuwe Banden -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-star"></i> Nieuwe Banden
+                    <span class="badge bg-light text-dark float-end">{{ new_tires|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if new_tires %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Merk</th>
+                                    <th>Maat</th>
+                                    <th>Type</th>
+                                    <th>Voorraad</th>
+                                    <th>Acties</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tire in new_tires %}
+                                <tr>
+                                    <td><strong>{{ tire.brand }}</strong></td>
+                                    <td>{{ tire.size }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ tire.tire_type }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="{{ 'stock-low' if tire.stock < 5 else 'stock-ok' }}">
+                                            {{ tire.stock }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('edit_tire', tire_id=tire.id) }}" 
+                                           class="btn btn-sm btn-outline-primary btn-action">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-action"
+                                                onclick="confirmDelete({{ tire.id }}, '{{ tire.brand }} {{ tire.size }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">Geen nieuwe banden in voorraad</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tweedehands Banden -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-recycle"></i> Tweedehands Banden
+                    <span class="badge bg-light text-dark float-end">{{ used_tires|length }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if used_tires %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Merk</th>
+                                    <th>Maat</th>
+                                    <th>Type</th>
+                                    <th>Voorraad</th>
+                                    <th>Acties</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tire in used_tires %}
+                                <tr>
+                                    <td><strong>{{ tire.brand }}</strong></td>
+                                    <td>{{ tire.size }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ tire.tire_type }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="{{ 'stock-low' if tire.stock < 5 else 'stock-ok' }}">
+                                            {{ tire.stock }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('edit_tire', tire_id=tire.id) }}" 
+                                           class="btn btn-sm btn-outline-primary btn-action">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-action"
+                                                onclick="confirmDelete({{ tire.id }}, '{{ tire.brand }} {{ tire.size }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">Geen tweedehands banden in voorraad</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Snelle Statistieken</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            <h3 class="text-primary">{{ new_tires|length }}</h3>
+                            <p class="text-muted">Nieuwe Banden</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            <h3 class="text-warning">{{ used_tires|length }}</h3>
+                            <p class="text-muted">Tweedehands Banden</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            <h3 class="text-success">{{ (new_tires + used_tires)|sum(attribute='stock') }}</h3>
+                            <p class="text-muted">Totaal Voorraad</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <h3 class="text-info">{{ (new_tires + used_tires)|selectattr('stock', '<', 5)|list|length }}</h3>
+                        <p class="text-muted">Lage Voorraad</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Banden Verwijderen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Weet je zeker dat je de banden "<span id="tireName"></span>" wilt verwijderen?</p>
+                <p class="text-danger"><small>Deze actie kan niet ongedaan worden gemaakt.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Verwijderen</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(tireId, tireName) {
+    document.getElementById('tireName').textContent = tireName;
+    document.getElementById('deleteForm').action = '/tires/delete/' + tireId;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %} 

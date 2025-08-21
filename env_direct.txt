@@ -1,0 +1,12 @@
+# Direct PostgreSQL Connection to Supabase
+user=postgres
+password=Bandenboer123!
+host=db.tfcgwmxiqgnlyjtpymzy.supabase.co
+port=5432
+dbname=postgres
+
+# Flask Configuration
+SECRET_KEY=bandenboer-secret-key-2024
+FLASK_ENV=development
+FLASK_DEBUG=True
+PORT=5000 

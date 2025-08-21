@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Banden Toevoegen - Banden Voorraad{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-plus"></i> Nieuwe Banden Toevoegen
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" class="needs-validation" novalidate>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="brand" class="form-label">Merk *</label>
+                            <select class="form-select" id="brand" name="brand" required>
+                                <option value="">Selecteer merk...</option>
+                                <option value="Michelin">Michelin</option>
+                                <option value="Continental">Continental</option>
+                                <option value="Vredestein">Vredestein</option>
+                                <option value="Bridgestone">Bridgestone</option>
+                                <option value="Goodyear">Goodyear</option>
+                                <option value="Dunlop">Dunlop</option>
+                                <option value="Pirelli">Pirelli</option>
+                                <option value="Hankook">Hankook</option>
+                                <option value="Kumho Tyres">Kumho Tyres</option>
+                                <option value="Hifly">Hifly</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Selecteer een merk.
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="size" class="form-label">Maat (Breedte/Hoogte/Velg) *</label>
+                            <input type="text" class="form-control" id="size" name="size" 
+                                   placeholder="205/55R16" 
+                                   maxlength="9"
+                                   title="Formaat: xxx/xx/Rxx (bijv. 205/55R16)" required>
+                            <div class="invalid-feedback">
+                                Voer een geldige maat in (formaat: xxx/xx/Rxx).
+                            </div>
+                            <div class="form-text">
+                                Type: 205 → 205/ → 205/55 → 205/55R → 205/55R16
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="tire_type" class="form-label">Type *</label>
+                            <select class="form-select" id="tire_type" name="tire_type" required>
+                                <option value="">Selecteer type...</option>
+                                <option value="zomer">Zomer</option>
+                                <option value="winter">Winter</option>
+                                <option value="all_season">All Season</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Selecteer een type.
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="condition" class="form-label">Conditie *</label>
+                            <select class="form-select" id="condition" name="condition" required>
+                                <option value="">Selecteer conditie...</option>
+                                <option value="new">Nieuw</option>
+                                <option value="used">Tweedehands</option>
+                            </select>
+                            <div class="invalid-feedback">
+                                Selecteer een conditie.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="stock" class="form-label">Aantal op voorraad *</label>
+                            <input type="number" class="form-control" id="stock" name="stock" 
+                                   min="0" value="1" required>
+                            <div class="invalid-feedback">
+                                Voer een geldig aantal in.
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="price" class="form-label">Inkoopprijs (€)</label>
+                            <input type="number" class="form-control" id="price" name="price" 
+                                   min="0" step="0.01" placeholder="Optioneel">
+                            <div class="form-text">
+                                Laat leeg als inkoopprijs nog niet bekend is.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Terug naar Overzicht
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Banden Toevoegen
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+// Auto-format tire size input
+document.addEventListener('DOMContentLoaded', function() {
+    const sizeInput = document.getElementById('size');
+    
+    sizeInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/[^\d]/g, ''); // Remove non-digits
+        
+        if (value.length >= 3) {
+            value = value.substring(0, 3) + '/' + value.substring(3);
+        }
+        
+        if (value.length >= 6) {
+            value = value.substring(0, 6) + 'R' + value.substring(6);
+        }
+        
+        // Limit to 9 characters (xxx/xx/Rxx)
+        if (value.length > 9) {
+            value = value.substring(0, 9);
+        }
+        
+        e.target.value = value;
+    });
+    
+    // Prevent non-numeric input except for auto-added characters
+    sizeInput.addEventListener('keypress', function(e) {
+        const char = String.fromCharCode(e.which);
+        if (!/\d/.test(char)) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %} 
