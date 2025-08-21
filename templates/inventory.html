@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}Voorraad Beheer - Banden Voorraad{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-boxes"></i> Voorraad Beheer</h1>
+            <div>
+                <button class="btn btn-success me-2" onclick="exportInventory()">
+                    <i class="fas fa-download"></i> Export Voorraad
+                </button>
+                <a href="{{ url_for('add_tire') }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Nieuwe Banden
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Zoek en Filter Sectie -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-search"></i> Zoeken & Filteren</h5>
+            </div>
+            <div class="card-body">
+                <form id="searchForm" method="GET">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="search" class="form-label">Zoeken</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   value="{{ request.args.get('search', '') }}" 
+                                   placeholder="Merk, maat, type...">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="condition" class="form-label">Conditie</label>
+                            <select class="form-select" id="condition" name="condition">
+                                <option value="">Alle</option>
+                                <option value="new" {{ 'selected' if request.args.get('condition') == 'new' }}>Nieuw</option>
+                                <option value="used" {{ 'selected' if request.args.get('condition') == 'used' }}>Tweedehands</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="tire_type" class="form-label">Type</label>
+                            <select class="form-select" id="tire_type" name="tire_type">
+                                <option value="">Alle</option>
+                                <option value="summer" {{ 'selected' if request.args.get('tire_type') == 'summer' }}>Zomer</option>
+                                <option value="winter" {{ 'selected' if request.args.get('tire_type') == 'winter' }}>Winter</option>
+                                <option value="all-season" {{ 'selected' if request.args.get('tire_type') == 'all-season' }}>All-Season</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="stock_filter" class="form-label">Voorraad</label>
+                            <select class="form-select" id="stock_filter" name="stock_filter">
+                                <option value="">Alle</option>
+                                <option value="in_stock" {{ 'selected' if request.args.get('stock_filter') == 'in_stock' }}>Op voorraad</option>
+                                <option value="low_stock" {{ 'selected' if request.args.get('stock_filter') == 'low_stock' }}>Lage voorraad</option>
+                                <option value="out_of_stock" {{ 'selected' if request.args.get('stock_filter') == 'out_of_stock' }}>Uitverkocht</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Zoeken
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistieken -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Voorraad Statistieken</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-2">
+                        <div class="border-end">
+                            <h3 class="text-primary">{{ stats.total_tires }}</h3>
+                            <p class="text-muted">Totaal Banden</p>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="border-end">
+                            <h3 class="text-success">{{ stats.new_tires }}</h3>
+                            <p class="text-muted">Nieuw</p>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="border-end">
+                            <h3 class="text-warning">{{ stats.used_tires }}</h3>
+                            <p class="text-muted">Tweedehands</p>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="border-end">
+                            <h3 class="text-info">{{ stats.total_stock }}</h3>
+                            <p class="text-muted">Totaal Voorraad</p>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="border-end">
+                            <h3 class="text-danger">{{ stats.low_stock }}</h3>
+                            <p class="text-muted">Lage Voorraad</p>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <h3 class="text-secondary">{{ stats.out_of_stock }}</h3>
+                        <p class="text-muted">Uitverkocht</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Voorraad Tabel -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Voorraad Overzicht</h5>
+                <div>
+                    <span class="badge bg-primary">{{ tires|length }} resultaten</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if tires %}
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="inventoryTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Merk</th>
+                                    <th>Maat</th>
+                                    <th>Type</th>
+                                    <th>Conditie</th>
+                                    <th>Voorraad</th>
+                                    <th>Prijs</th>
+                                    <th>Laatst Bijgewerkt</th>
+                                    <th>Acties</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tire in tires %}
+                                <tr class="{{ 'table-warning' if tire.stock < 5 and tire.stock > 0 else '' }}{{ 'table-danger' if tire.stock == 0 else '' }}">
+                                    <td>
+                                        <strong>{{ tire.brand }}</strong>
+                                        {% if tire.stock == 0 %}
+                                            <span class="badge bg-danger ms-1">Uitverkocht</span>
+                                        {% elif tire.stock < 5 %}
+                                            <span class="badge bg-warning ms-1">Lage voorraad</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ tire.size }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ tire.tire_type|title }}</span>
+                                    </td>
+                                    <td>
+                                        {% if tire.condition == 'new' %}
+                                            <span class="badge bg-success">Nieuw</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Tweedehands</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold {{ 'text-danger' if tire.stock == 0 else 'text-warning' if tire.stock < 5 else 'text-success' }}">
+                                            {{ tire.stock }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if tire.price %}
+                                            €{{ "%.2f"|format(tire.price) }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ tire.updated_at.strftime('%d-%m-%Y %H:%M') if tire.updated_at else 'Onbekend' }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('edit_tire', tire_id=tire.id) }}" 
+                                               class="btn btn-sm btn-outline-primary" title="Bewerken">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    onclick="confirmDelete({{ tire.id }}, '{{ tire.brand }} {{ tire.size }}')"
+                                                    title="Verwijderen">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">Geen banden gevonden</h4>
+                        <p class="text-muted">Probeer andere zoekcriteria of voeg nieuwe banden toe.</p>
+                        <a href="{{ url_for('add_tire') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Nieuwe Banden Toevoegen
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Banden Verwijderen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Weet je zeker dat je de banden "<span id="tireName"></span>" wilt verwijderen?</p>
+                <p class="text-danger"><small>Deze actie kan niet ongedaan worden gemaakt.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Verwijderen</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(tireId, tireName) {
+    document.getElementById('tireName').textContent = tireName;
+    document.getElementById('deleteForm').action = '/tires/delete/' + tireId;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+function exportInventory() {
+    // Haal de huidige zoekparameters op
+    const searchParams = new URLSearchParams(window.location.search);
+    const exportUrl = '/inventory/export?' + searchParams.toString();
+    
+    // Download het bestand
+    window.location.href = exportUrl;
+}
+
+// Auto-submit form bij filter wijzigingen
+document.getElementById('condition').addEventListener('change', function() {
+    document.getElementById('searchForm').submit();
+});
+
+document.getElementById('tire_type').addEventListener('change', function() {
+    document.getElementById('searchForm').submit();
+});
+
+document.getElementById('stock_filter').addEventListener('change', function() {
+    document.getElementById('searchForm').submit();
+});
+</script>
+
+<style>
+.table-hover tbody tr:hover {
+    background-color: rgba(0,123,255,.075);
+}
+
+.stock-low {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.stock-ok {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.btn-action {
+    margin: 0 2px;
+}
+</style>
+{% endblock %} 
